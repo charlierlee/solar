@@ -1,7 +1,7 @@
 tables:
 
   # Replace 'my_database_table' the desired table name
-  device_data_logs2:
+  device_data_logs3:
 
     # The entries below specify the fields which will be recorded, and the column names the vales
     # will be stored in
@@ -68,3 +68,27 @@ tables:
       device: "flexnet_dc"
       field: "shunt_a_accumulated_ah"
       db_column: "shunt_a_accumulated_ah"
+    - port: 4
+      device: "flexnet_dc"
+      field: "shunt_b_current"
+      db_column: "shunt_b_current"
+    - port: 4
+      device: "flexnet_dc"
+      field: "shunt_b_accumulated_kwh"
+      db_column: "shunt_b_accumulated_kwh"
+    - port: 4
+      device: "flexnet_dc"
+      field: "shunt_b_accumulated_ah"
+      db_column: "shunt_b_accumulated_ah"
+    - port: 4
+      device: "flexnet_dc"
+      field: "shunt_c_current"
+      db_column: "shunt_c_current"
+    - port: 4
+      device: "flexnet_dc"
+      field: "shunt_c_accumulated_kwh"
+      db_column: "shunt_c_accumulated_kwh"
+    - port: 4
+      device: "flexnet_dc"
+      field: "shunt_c_accumulated_ah"
+      db_column: "shunt_c_accumulated_ah"
