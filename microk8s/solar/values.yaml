@@ -59,8 +59,13 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
-nodeSelector: {}
+nodeSelector: 
+  kubernetes.io/hostname: latitude-e5510
 
-tolerations: []
+tolerations:
+  - key: "key2"
+    operator: "Equal"
+    value: "value1"
+    effect: "NoSchedule"
 
 affinity: {}
