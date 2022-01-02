@@ -1,7 +1,7 @@
 tables:
 
   # Replace 'my_database_table' the desired table name
-  device_data_logs3:
+  device_data_logs1:
 
     # The entries below specify the fields which will be recorded, and the column names the vales
     # will be stored in
@@ -9,11 +9,113 @@ tables:
       # The device name as specified in mate3/base_structures.py
       device: "fx_inverter"
       # The field you wish to store (use the `mate3` command to see the available options)
-      field: "battery_voltage"
+      field: "dc_voltage_scale_factor"
       # The name of the column to store this value in. Must be unique for this table
+      db_column: "dc_voltage_scale_factor"
+    - port: 1
+      device: "fx_inverter"
+      field: "ac_current_scale_factor"
+      db_column: "ac_current_scale_factor"
+    - port: 1
+      device: "fx_inverter"
+      field: "ac_voltage_scale_factor"
+      db_column: "ac_voltage_scale_factor"
+    - port: 1
+      device: "fx_inverter"
+      field: "ac_frequency_scale_factor"
+      db_column: "ac_frequency_scale_factor"
+    - port: 1
+      device: "fx_inverter"
+      field: "inverter_output_current"
+      db_column: "inverter_output_current"
+    - port: 1
+      device: "fx_inverter"
+      field: "inverter_charge_current"
+      db_column: "inverter_charge_current"
+    - port: 1
+      device: "fx_inverter"
+      field: "inverter_buy_current"
+      db_column: "inverter_buy_current"
+    - port: 1
+      device: "fx_inverter"
+      field: "inverter_sell_current"
+      db_column: "inverter_sell_current"
+    - port: 1
+      device: "fx_inverter"
+      field: "output_ac_voltage"
+      db_column: "output_ac_voltage"
+    - port: 1
+      device: "fx_inverter"
+      field: "inverter_operating_mode"
+      db_column: "inverter_operating_mode"
+    - port: 1
+      device: "fx_inverter"
+      field: "error_flags"
+      db_column: "error_flags"
+    - port: 1
+      device: "fx_inverter"
+      field: "warning_flags"
+      db_column: "warning_flags"
+    - port: 1
+      device: "fx_inverter"
+      field: "battery_voltage"
       db_column: "battery_voltage"
-
-    # The above section repeats below for different fields
+    - port: 1
+      device: "fx_inverter"
+      field: "aux_output_state"
+      db_column: "aux_output_state"
+    - port: 1
+      device: "fx_inverter"
+      field: "transformer_temperature"
+      db_column: "transformer_temperature"
+    - port: 1
+      device: "fx_inverter"
+      field: "capacitor_temperature"
+      db_column: "capacitor_temperature"
+    - port: 1
+      device: "fx_inverter"
+      field: "fet_temperature"
+      db_column: "fet_temperature"
+    - port: 1
+      device: "fx_inverter"
+      field: "ac_input_frequency"
+      db_column: "ac_input_frequency"
+    - port: 1
+      device: "fx_inverter"
+      field: "ac_input_voltage"
+      db_column: "ac_input_voltage"
+    - port: 1
+      device: "fx_inverter"
+      field: "minimum_ac_input_voltage"
+      db_column: "minimum_ac_input_voltage"
+    - port: 1
+      device: "fx_inverter"
+      field: "maximum_ac_input_voltage"
+      db_column: "maximum_ac_input_voltage"
+    - port: 1
+      device: "fx_inverter"
+      field: "sell_status"
+      db_column: "sell_status"
+    - port: 1
+      device: "fx_inverter"
+      field: "kwh_scale_factor"
+      db_column: "kwh_scale_factor"
+    - port: 1
+      device: "fx_inverter"
+      field: "buy_kwh"
+      db_column: "buy_kwh"
+    - port: 1
+      device: "fx_inverter"
+      field: "sell_kwh"
+      db_column: "sell_kwh"
+    - port: 1
+      device: "fx_inverter"
+      field: "output_kwh"
+      db_column: "output_kwh"
+    - port: 1
+      device: "fx_inverter"
+      field: "charger_kwh"
+      db_column: "charger_kwh"
     - port: 1
       device: "fx_inverter"
       field: "output_kw"
@@ -24,13 +126,20 @@ tables:
       db_column: "buy_kw"
     - port: 1
       device: "fx_inverter"
+      field: "sell_kw"
+      db_column: "sell_kw"
+    - port: 1
+      device: "fx_inverter"
+      field: "charge_kw"
+      db_column: "charge_kw"
+    - port: 1
+      device: "fx_inverter"
       field: "load_kw"
       db_column: "load_kw"
     - port: 1
       device: "fx_inverter"
-      field: "aux_output_state"
-      db_column: "aux_output_state"
-
+      field: "ac_couple_kw"
+      db_column: "ac_couple_kw"
     - port: 2
       device: "charge_controller"
       field: "watts"
@@ -43,7 +152,6 @@ tables:
       device: "charge_controller"
       field: "charger_state"
       db_column: "cc1_charger_state"
-
     - port: 3
       device: "charge_controller"
       field: "watts"

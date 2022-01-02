@@ -2,4 +2,5 @@ wheel
 poetry
 pyyaml
 psycopg2
-mate3
+Flask
+git+git://github.com/maddadder/mate3
