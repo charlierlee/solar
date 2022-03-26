@@ -17,7 +17,10 @@
     # rename Dockerfile.example to Dockerfile
     # build the image with the secret
     docker-compose build
+    docker push 192.168.1.151:32000/solar:1.0.45
     microk8s helm3 install solar ./solar
+    OR 
+    helm upgrade solar ./solar
     #kubectl -n default expose deployment acid-minimal-cluster-0 --port=5432
     # get name of master pod of acid-minimal-cluster
     export PGMASTER=$(microk8s kubectl get pods -o jsonpath={.items..metadata.name} -l application=spilo,cluster-name=acid-minimal-cluster,spilo-role=master -n default)

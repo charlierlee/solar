@@ -3,4 +3,6 @@ poetry
 pyyaml
 psycopg2
 Flask
-git+git://github.com/maddadder/mate3
+pandas
+matplotlib
+git+https://github.com/maddadder/mate3

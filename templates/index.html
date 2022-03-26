@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Solar data {% endblock %}</h1>
+    {% if figdata_png != None %}
+        <img src="data:image/png;base64,{{ figdata_png }}"\>
+    {% endif %}
+{% endblock %}
