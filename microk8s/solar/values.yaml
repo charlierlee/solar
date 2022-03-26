@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: 192.168.1.84:32000/solar
+  repository: 192.168.1.151:32000/solar
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
@@ -59,13 +59,13 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
-nodeSelector: 
-  kubernetes.io/hostname: latitude-e5510
+#nodeSelector: 
+#  kubernetes.io/hostname: latitude-e5510
 
-tolerations:
-  - key: "key2"
-    operator: "Equal"
-    value: "value1"
-    effect: "NoSchedule"
+#tolerations:
+#  - key: "key2"
+#    operator: "Equal"
+#    value: "value1"
+#    effect: "NoSchedule"
 
 affinity: {}

@@ -5,16 +5,19 @@
     git clone https://github.com/maddadder/postgres-operator
     cd postgres-operator
     microk8s helm3 install postgres-operator ./charts/postgres-operator
-    microk8s helm3 install postgres-operator-ui ./charts/postgres-operator-ui
-    microk8s kubectl port-forward svc/postgres-operator-ui 8081:80
+    #microk8s helm3 install postgres-operator-ui ./charts/postgres-operator-ui
+    #microk8s kubectl port-forward svc/postgres-operator-ui 8081:80
     ```
     
     # create a Postgres cluster
     ```
     #cd into this folder
     microk8s kubectl create -f ./minimal-postgres-manifest.yaml
-    # go get the secret
-    microk8s html3 install solar ./solar
+    # go get the secret of zalando.acid-minimal-cluster.credentials.postgresql.acid.zalan.do and save in docker file
+    # rename Dockerfile.example to Dockerfile
+    # build the image with the secret
+    docker-compose build
+    microk8s helm3 install solar ./solar
     #kubectl -n default expose deployment acid-minimal-cluster-0 --port=5432
     # get name of master pod of acid-minimal-cluster
     export PGMASTER=$(microk8s kubectl get pods -o jsonpath={.items..metadata.name} -l application=spilo,cluster-name=acid-minimal-cluster,spilo-role=master -n default)
