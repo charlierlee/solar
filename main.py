@@ -258,6 +258,7 @@ app = Flask(__name__)
 
 import numpy as np
 import time
+
 def PCA(X , num_components):
      
     #Step-1
@@ -276,21 +277,40 @@ def PCA(X , num_components):
      
     #Step-5
     eigenvector_subset = sorted_eigenvectors[:,0:num_components]
-     
+
+    # if you multiply the first component by -1, it will closely match the SVD algorithm below
+    #https://stackoverflow.com/questions/27781872/eigenvectors-computed-with-numpys-eigh-and-svd-do-not-match
+    eigenvector_subset[:,0] = -1*eigenvector_subset[:,0]
+    
     #Step-6
     X_reduced = np.dot(eigenvector_subset.transpose() , X_meaned.transpose() ).transpose()
-     
+    
     return X_reduced
 
+def SVD(X , num_components):
 
- 
+    X_meaned = X - np.mean(X , axis = 0)
+
+    cov_mat = np.cov(X_meaned , rowvar = False)
+
+    U, S, Vt = np.linalg.svd(cov_mat, full_matrices=False)
+    V = Vt.T
+    # Sort the PCs by descending order of the singular values (i.e. by the proportion of total variance they explain)
+    ind = np.argsort(S)[::-1]
+    U, S, V = U[:, ind], S[ind], V[:, ind]
+
+    eigenvector_subset = V[:,0:num_components]
+
+    X_reduced = np.dot(eigenvector_subset.transpose() , X_meaned.transpose() ).transpose()
+
+    return X_reduced
 
 @app.route("/")
 def index():
     return render_template('index.html')
 
-@app.route('/graph')
-def graph():
+@app.route('/graphsvd')
+def graphsvd():
     global args
     with psycopg2.connect(args.database_url) as conn:
 
@@ -307,9 +327,9 @@ def graph():
         target = df.iloc[:,18]
 
 
-        #Applying it to PCA function
-        mat_reduced = PCA(df , 2)
-        
+        #Applying it to SVD function
+        mat_reduced = SVD(df , 2)
+
         #Creating a Pandas DataFrame of reduced Dataset
         principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2'])
         
@@ -335,11 +355,12 @@ def graph():
         
         #figdata_png = base64.b64encode(figfile.read())
         figdata_png = base64.b64encode(figfile.getvalue())
+        plt.clf()
+        return render_template('svd.html', figdata_png=figdata_png.decode('utf8'))
 
-        return render_template('pca.html', figdata_png=figdata_png.decode('utf8'))
 
-@app.route('/graphdata')
-def graphdata():
+@app.route('/graphsvddata')
+def graphsvddata():
     global args
     with psycopg2.connect(args.database_url) as conn:
 
@@ -351,20 +372,19 @@ def graphdata():
         hourOfDay = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight))
         df = df.loc[:, list(df.columns[1:23]) + list(df.columns[25:50])]
         df = df.loc[:, (df != 0).any(axis=0)]
-        #target == cc1_watts
-        target = df.iloc[:,18]
-
-        #Applying it to PCA function
-        mat_reduced = PCA(df , 2)
+        #target == cc1_watts + cc2_watts
+        cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
+        #Applying it to SVD function
+        mat_reduced = SVD(df , 2)
         
         #Creating a Pandas DataFrame of reduced Dataset
         principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2'])
         
-        #Concat it with target variable to create a complete Dataset
-        principal_df = pd.concat([principal_df , pd.DataFrame(target)] , axis = 1)
+        #Concat it with cc_watts variable to create a complete Dataset
+        principal_df = pd.concat([principal_df , pd.DataFrame(cc_watts)] , axis = 1)
         principal_df = pd.concat([principal_df , pd.DataFrame(hourOfDay)] , axis = 1)
 
-        return render_template('graphdata.html', samples=principal_df.values.tolist(), column_names=principal_df.head())
+        return render_template('graphsvddata.html', samples=principal_df.values.tolist(), column_names=principal_df.head())
 
 @app.route('/about')
 def about():
