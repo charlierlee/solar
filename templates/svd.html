@@ -2,7 +2,10 @@
 
 {% block content %}
     <h1>{% block title %} Solar data {% endblock %}</h1>
-    {% if figdata_png != None %}
-        <img src="data:image/png;base64,{{ figdata_png }}"\>
-    {% endif %}
+    {% for figdata_png in images %}
+        {% if figdata_png != None %}
+            <img src="data:image/png;base64,{{ figdata_png }}"\>
+            <br />
+        {% endif %}
+    {% endfor %}
 {% endblock %}

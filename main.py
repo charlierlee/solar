@@ -351,23 +351,31 @@ def graphsvd():
         fig = plt.figure(figsize=(12, 9))
         ax = Axes3D(fig)
         
-        ax.scatter(df['dayPercentComplete'], principal_df['PC1'], principal_df['PC2'], cmap='YlOrRd', c=df['cc1_watts'], s=1)
+        ax.scatter(df['dayPercentComplete'], principal_df['PC2'], principal_df['PC1'], cmap='YlOrRd', c=df['cc1_watts'], s=1)
         colors = ['yellow', 'red']
         scatter1_proxy = Line2D([0],[0], linestyle="none", c=colors[0], marker = 'o')
         scatter2_proxy = Line2D([0],[0], linestyle="none", c=colors[1], marker = 'o')
         ax.legend([scatter1_proxy, scatter2_proxy], ['low watts', 'high watts'], numpoints = 1)
         ax.set_xlabel('time of day')
-        ax.set_ylabel('PC1')
-        ax.set_zlabel('PC2')
-        
-        figfile = BytesIO()
-        plt.savefig(figfile, format='png')
-        figfile.seek(0)  # rewind to beginning of file
-        
-        #figdata_png = base64.b64encode(figfile.read())
-        figdata_png = base64.b64encode(figfile.getvalue())
+        ax.set_ylabel('PC2')
+        ax.set_zlabel('PC1')
+        images = []
+        for angle in range(-360, 0, 45):
+            figfile = BytesIO()
+            plt.savefig(figfile, format='png')
+            figfile.seek(0)  # rewind to beginning of file
+            figdata_png = base64.b64encode(figfile.getvalue())
+            images.append(figdata_png.decode('utf8'))
+            ax.view_init(0, angle)
+        for angle in range(-360, 0, 45):
+            figfile = BytesIO()
+            plt.savefig(figfile, format='png')
+            figfile.seek(0)  # rewind to beginning of file
+            figdata_png = base64.b64encode(figfile.getvalue())
+            images.append(figdata_png.decode('utf8'))
+            ax.view_init(angle, 0)
         plt.clf()
-        return render_template('svd.html', figdata_png=figdata_png.decode('utf8'))
+        return render_template('svd.html', images=images)
 
 
 @app.route('/graphsvddata')
