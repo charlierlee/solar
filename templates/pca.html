@@ -2,5 +2,7 @@
 
 {% block content %}
     <h1>{% block title %} Solar data {% endblock %}</h1>
-    Click the above links to navigate to the content
+    {% if figdata_png != None %}
+        <img src="data:image/png;base64,{{ figdata_png }}"\>
+    {% endif %}
 {% endblock %}

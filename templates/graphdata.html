@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Solar data {% endblock %}</h1>
+    <table border="1" cellpadding="5" cellspacing="5">
+        <tr>
+            {% for d in column_names %}
+                <td>{{ d }}</td>
+            {% endfor %}
+        </tr>
+        {% for row in samples %}
+            <tr>
+            {% for d in row %}
+                <td>{{ d }}</td>
+            {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

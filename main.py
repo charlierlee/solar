@@ -8,7 +8,6 @@ from pymodbus.exceptions import ModbusIOException, ConnectionException
 
 from mate3 import mate3_connection
 import time
-
 from mate3.api import AnyBlock, Device
 from mate3.base_structures import get_parser
 
@@ -19,6 +18,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
+from datetime import datetime
+from dateutil import tz
 
 logger = logging.getLogger('mate3.mate3_pg')
 
@@ -284,23 +285,26 @@ def PCA(X , num_components):
 
  
 
-
-@app.route('/')
+@app.route("/")
 def index():
+    return render_template('index.html')
+
+@app.route('/graph')
+def graph():
     global args
     with psycopg2.connect(args.database_url) as conn:
 
-        df = pd.read_sql_query('SELECT * FROM device_data_logs1 order by timestamp desc limit 1000;', conn)
-        #Get the IRIS dataset
-        #df = pd.read_csv('./maths/pca/solar-data2.csv',nrows=100000, skiprows=1, names=['timestamp','dc_voltage_scale_factor','ac_current_scale_factor','ac_voltage_scale_factor','ac_frequency_scale_factor','inverter_output_current','inverter_charge_current','inverter_buy_current','inverter_sell_current','output_ac_voltage','inverter_operating_mode','error_flags','warning_flags','battery_voltage','temperature_compensated_target_voltage','aux_output_state','transformer_temperature','capacitor_temperature','fet_temperature','ac_input_frequency','ac_input_voltage','minimum_ac_input_voltage','maximum_ac_input_voltage','sell_status','kwh_scale_factor','buy_kwh','sell_kwh','output_kwh','charger_kwh','output_kw','buy_kw','sell_kw','charge_kw','load_kw','ac_couple_kw','cc1_watts','cc1_battery_current','cc1_charger_state','cc2_watts','cc2_battery_current','cc2_charger_state','shunt_a_current','shunt_a_accumulated_kwh','shunt_a_accumulated_ah','shunt_b_current','shunt_b_accumulated_kwh','shunt_b_accumulated_ah','shunt_c_current','shunt_c_accumulated_kwh','shunt_c_accumulated_ah'])
-        #target is column sell_status, column 23 (0 based index)
-        target = df.iloc[:,23]
-        #prepare the data
+        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp::date >= (now() at time zone 'PST')::date order by timestamp desc;", conn)
+        midnight=(datetime
+             .now(tz.gettz('America/Tijuana'))
+             .replace(hour=0, minute=0, second=0, microsecond=0)
+             .astimezone(tz.tzutc()))
+        secondsInDay = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds())
         df = df.loc[:, list(df.columns[1:23]) + list(df.columns[25:50])]
-        #x = x.apply(pd.to_numeric, axis=0)
         df = df.loc[:, (df != 0).any(axis=0)]
-
-        #prepare the target
+        #target == cc1_watts
+        
+        target = df.iloc[:,18]
 
 
         #Applying it to PCA function
@@ -311,15 +315,16 @@ def index():
         
         #Concat it with target variable to create a complete Dataset
         principal_df = pd.concat([principal_df , pd.DataFrame(target)] , axis = 1)
+        
 
-        colors = list()
-        palette = {0: "red", 64: "green", 10: "blue", 26: "orange", 16: "yellow", 80: "black"}
+        #colors = list()
+        #palette = {0: "red", 64: "green", 10: "blue", 26: "orange", 16: "yellow", 80: "black"}
 
-        for c in target: 
-            colors.append(palette[int(c)])
+        #for c in target: 
+        #    colors.append(palette[int(c)])
 
 
-        plt.scatter(principal_df['PC1'], principal_df['PC2'], c = colors, s=1)
+        plt.scatter(principal_df['PC1'], principal_df['PC2'], cmap='Greens', c=secondsInDay, s=1)
         plt.xlabel('PC1')
         plt.ylabel('PC2')
 
@@ -331,19 +336,48 @@ def index():
         #figdata_png = base64.b64encode(figfile.read())
         figdata_png = base64.b64encode(figfile.getvalue())
 
-        return render_template('index.html', figdata_png=figdata_png.decode('utf8'))
+        return render_template('pca.html', figdata_png=figdata_png.decode('utf8'))
+
+@app.route('/graphdata')
+def graphdata():
+    global args
+    with psycopg2.connect(args.database_url) as conn:
+
+        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp::date >= (now() at time zone 'PST')::date order by timestamp desc;", conn)
+        midnight=(datetime
+             .now(tz.gettz('America/Tijuana'))
+             .replace(hour=0, minute=0, second=0, microsecond=0)
+             .astimezone(tz.tzutc()))
+        hourOfDay = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight))
+        df = df.loc[:, list(df.columns[1:23]) + list(df.columns[25:50])]
+        df = df.loc[:, (df != 0).any(axis=0)]
+        #target == cc1_watts
+        target = df.iloc[:,18]
+
+        #Applying it to PCA function
+        mat_reduced = PCA(df , 2)
+        
+        #Creating a Pandas DataFrame of reduced Dataset
+        principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2'])
+        
+        #Concat it with target variable to create a complete Dataset
+        principal_df = pd.concat([principal_df , pd.DataFrame(target)] , axis = 1)
+        principal_df = pd.concat([principal_df , pd.DataFrame(hourOfDay)] , axis = 1)
+
+        return render_template('graphdata.html', samples=principal_df.values.tolist(), column_names=principal_df.head())
 
 @app.route('/about')
 def about():
     global args
     with psycopg2.connect(args.database_url) as conn:
-        cur = conn.cursor()
-        cur.execute('SELECT * FROM device_data_logs1 order by timestamp desc limit 100;')
-        column_names = [desc[0] for desc in cur.description]
-        samples = cur.fetchall()
-        cur.close()
+        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp::date >= (now() at time zone 'PST')::date order by timestamp desc;", conn)
+        #prepare the data
+        df = df.loc[:, list(df.columns[0:23]) + list(df.columns[25:50])]
+        
+        df = df.loc[:, (df != 0).any(axis=0)]
+
         #conn.close()
-        return render_template('about.html', samples=samples, column_names=column_names)
+        return render_template('about.html', samples=df.values.tolist(), column_names=df.head())
 
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8511, debug=True, use_reloader=False)).start()
