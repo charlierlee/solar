@@ -20,6 +20,8 @@ from io import BytesIO
 import base64
 from datetime import datetime
 from dateutil import tz
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.lines import Line2D
 
 logger = logging.getLogger('mate3.mate3_pg')
 
@@ -277,10 +279,6 @@ def PCA(X , num_components):
      
     #Step-5
     eigenvector_subset = sorted_eigenvectors[:,0:num_components]
-
-    # if you multiply the first component by -1, it will closely match the SVD algorithm below
-    #https://stackoverflow.com/questions/27781872/eigenvectors-computed-with-numpys-eigh-and-svd-do-not-match
-    eigenvector_subset[:,0] = -1*eigenvector_subset[:,0]
     
     #Step-6
     X_reduced = np.dot(eigenvector_subset.transpose() , X_meaned.transpose() ).transpose()
@@ -302,6 +300,10 @@ def SVD(X , num_components):
     U, S, V = U[:, ind], S[ind], V[:, ind]
 
     eigenvector_subset = V[:,0:num_components]
+
+    # if you multiply the first component by -1, it will closely match the PCA algorithm above
+    #https://stackoverflow.com/questions/27781872/eigenvectors-computed-with-numpys-eigh-and-svd-do-not-match
+    eigenvector_subset[:,0] = -1*eigenvector_subset[:,0]
 
     X_reduced = np.dot(eigenvector_subset.transpose() , X_meaned.transpose() ).transpose()
 
@@ -325,16 +327,17 @@ def graphsvd():
         df = df.loc[:, list(df.columns[1:23]) + list(df.columns[25:50])]
         df['dayPercentComplete'] = dayPercentComplete
         df = df.loc[:, (df != 0).any(axis=0)]
+        cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
         #target == cc1_watts
         
         target = df.iloc[:,18]
 
 
         #Applying it to SVD function
-        mat_reduced = SVD(df , 2)
+        mat_reduced = SVD(df , 3)
 
         #Creating a Pandas DataFrame of reduced Dataset
-        principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2'])
+        principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2', 'PC3'])
         
         #Concat it with target variable to create a complete Dataset
         principal_df = pd.concat([principal_df , pd.DataFrame(target)] , axis = 1)
@@ -345,12 +348,17 @@ def graphsvd():
 
         #for c in target: 
         #    colors.append(palette[int(c)])
-
-
-        plt.scatter(principal_df['PC1'], principal_df['PC2'], cmap='Greens', c=dayPercentComplete, s=1)
-        plt.xlabel('PC1')
-        plt.ylabel('PC2')
-
+        fig = plt.figure(figsize=(12, 9))
+        ax = Axes3D(fig)
+        
+        ax.scatter(df['dayPercentComplete'], principal_df['PC1'], principal_df['PC2'], cmap='YlOrRd', c=df['cc1_watts'], s=1)
+        colors = ['yellow', 'red']
+        scatter1_proxy = Line2D([0],[0], linestyle="none", c=colors[0], marker = 'o')
+        scatter2_proxy = Line2D([0],[0], linestyle="none", c=colors[1], marker = 'o')
+        ax.legend([scatter1_proxy, scatter2_proxy], ['low watts', 'high watts'], numpoints = 1)
+        ax.set_xlabel('time of day')
+        ax.set_ylabel('PC1')
+        ax.set_zlabel('PC2')
         
         figfile = BytesIO()
         plt.savefig(figfile, format='png')
@@ -380,10 +388,10 @@ def graphsvddata():
         #target == cc1_watts + cc2_watts
         cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
         #Applying it to SVD function
-        mat_reduced = SVD(df , 2)
+        mat_reduced = SVD(df , 3)
         
         #Creating a Pandas DataFrame of reduced Dataset
-        principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2'])
+        principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2','PC3'])
         
         #Concat it with cc_watts variable to create a complete Dataset
         principal_df = pd.concat([principal_df , pd.DataFrame(cc_watts)] , axis = 1)
