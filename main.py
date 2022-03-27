@@ -319,8 +319,9 @@ def graphsvd():
              .now(tz.gettz('America/Tijuana'))
              .replace(hour=0, minute=0, second=0, microsecond=0)
              .astimezone(tz.tzutc()))
-        secondsInDay = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds())
+        secondsInDay = df.iloc[:,0].apply(lambda x: int((x.to_pydatetime() - midnight).total_seconds()))
         df = df.loc[:, list(df.columns[1:23]) + list(df.columns[25:50])]
+        df['secondsInDay'] = secondsInDay
         df = df.loc[:, (df != 0).any(axis=0)]
         #target == cc1_watts
         
@@ -370,7 +371,9 @@ def graphsvddata():
              .replace(hour=0, minute=0, second=0, microsecond=0)
              .astimezone(tz.tzutc()))
         hourOfDay = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight))
+        secondsInDay = df.iloc[:,0].apply(lambda x: int((x.to_pydatetime() - midnight).total_seconds()))
         df = df.loc[:, list(df.columns[1:23]) + list(df.columns[25:50])]
+        df['secondsInDay'] = secondsInDay
         df = df.loc[:, (df != 0).any(axis=0)]
         #target == cc1_watts + cc2_watts
         cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
@@ -391,9 +394,19 @@ def about():
     global args
     with psycopg2.connect(args.database_url) as conn:
         df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp::date >= (now() at time zone 'PST')::date order by timestamp desc;", conn)
+        midnight=(datetime
+             .now(tz.gettz('America/Tijuana'))
+             .replace(hour=0, minute=0, second=0, microsecond=0)
+             .astimezone(tz.tzutc()))
+        secondsInDay = df.iloc[:,0].apply(lambda x: int((x.to_pydatetime() - midnight).total_seconds()))
         #prepare the data
         df = df.loc[:, list(df.columns[0:23]) + list(df.columns[25:50])]
-        
+        df['secondsInDay'] = secondsInDay
+
+        # move column to 2nd place
+        col = df.pop("secondsInDay")
+        df.insert(1, col.name, col)
+
         df = df.loc[:, (df != 0).any(axis=0)]
 
         #conn.close()
