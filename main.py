@@ -289,6 +289,8 @@ def PCA(X , num_components):
 
 def SVD(X , num_components):
 
+    #X_meaned=(X-X.mean())/X.std()
+
     X_meaned = X - np.mean(X , axis = 0)
 
     cov_mat = np.cov(X_meaned , rowvar = False)
@@ -314,14 +316,14 @@ def graphsvd():
     global args
     with psycopg2.connect(args.database_url) as conn:
 
-        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp::date >= (now() at time zone 'PST')::date order by timestamp desc;", conn)
+        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;", conn)
         midnight=(datetime
              .now(tz.gettz('America/Tijuana'))
              .replace(hour=0, minute=0, second=0, microsecond=0)
              .astimezone(tz.tzutc()))
-        secondsInDay = df.iloc[:,0].apply(lambda x: int((x.to_pydatetime() - midnight).total_seconds()))
+        dayPercentComplete = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds() / 60 / 60 / 24)
         df = df.loc[:, list(df.columns[1:23]) + list(df.columns[25:50])]
-        df['secondsInDay'] = secondsInDay
+        df['dayPercentComplete'] = dayPercentComplete
         df = df.loc[:, (df != 0).any(axis=0)]
         #target == cc1_watts
         
@@ -345,7 +347,7 @@ def graphsvd():
         #    colors.append(palette[int(c)])
 
 
-        plt.scatter(principal_df['PC1'], principal_df['PC2'], cmap='Greens', c=secondsInDay, s=1)
+        plt.scatter(principal_df['PC1'], principal_df['PC2'], cmap='Greens', c=dayPercentComplete, s=1)
         plt.xlabel('PC1')
         plt.ylabel('PC2')
 
@@ -365,15 +367,15 @@ def graphsvddata():
     global args
     with psycopg2.connect(args.database_url) as conn:
 
-        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp::date >= (now() at time zone 'PST')::date order by timestamp desc;", conn)
+        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;", conn)
         midnight=(datetime
              .now(tz.gettz('America/Tijuana'))
              .replace(hour=0, minute=0, second=0, microsecond=0)
              .astimezone(tz.tzutc()))
         hourOfDay = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight))
-        secondsInDay = df.iloc[:,0].apply(lambda x: int((x.to_pydatetime() - midnight).total_seconds()))
+        dayPercentComplete = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds() / 60 / 60 / 24 )
         df = df.loc[:, list(df.columns[1:23]) + list(df.columns[25:50])]
-        df['secondsInDay'] = secondsInDay
+        df['dayPercentComplete'] = dayPercentComplete
         df = df.loc[:, (df != 0).any(axis=0)]
         #target == cc1_watts + cc2_watts
         cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
@@ -393,18 +395,18 @@ def graphsvddata():
 def about():
     global args
     with psycopg2.connect(args.database_url) as conn:
-        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp::date >= (now() at time zone 'PST')::date order by timestamp desc;", conn)
+        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;", conn)
         midnight=(datetime
              .now(tz.gettz('America/Tijuana'))
              .replace(hour=0, minute=0, second=0, microsecond=0)
              .astimezone(tz.tzutc()))
-        secondsInDay = df.iloc[:,0].apply(lambda x: int((x.to_pydatetime() - midnight).total_seconds()))
+        dayPercentComplete = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds() / 60 / 60 / 24)
         #prepare the data
         df = df.loc[:, list(df.columns[0:23]) + list(df.columns[25:50])]
-        df['secondsInDay'] = secondsInDay
-
+        df['dayPercentComplete'] = dayPercentComplete
+        df = df.loc[:, (df != 0).any(axis=0)]
         # move column to 2nd place
-        col = df.pop("secondsInDay")
+        col = df.pop("dayPercentComplete")
         df.insert(1, col.name, col)
 
         df = df.loc[:, (df != 0).any(axis=0)]
