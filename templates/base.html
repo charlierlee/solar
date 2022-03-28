@@ -6,7 +6,7 @@
     <style>
         nav a {
             color: #00c000;
-            font-size: 3em;
+            font-size: 1em;
             margin-left: 50px;
             text-decoration: none;
         }
@@ -19,6 +19,9 @@
         <a href="{{ url_for('graphsvd') }}">PCA</a>
         <a href="{{ url_for('graphsvddata') }}">PCA data</a>
         <a href="{{ url_for('about') }}">About</a>
+        <a href="{{ url_for('graphsvd',yesturday=True) }}">PCA yesturday</a>
+        <a href="{{ url_for('graphsvddata',yesturday=True) }}">PCA data yesturday</a>
+        <a href="{{ url_for('about',yesturday=True) }}">About yesturday</a>
     </nav>
     <hr>
     <div class="content">

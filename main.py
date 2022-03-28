@@ -322,6 +322,9 @@ def heatmap(images,df):
     plt.subplots(figsize=default_figure_size)
     plt.clf()
 
+sqlToday = "SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;"
+sqlYesturday = "SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', (now() - interval '24h') AT TIME ZONE 'PST') AT TIME ZONE 'PST' AND timestamp <= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;"
+        
 @app.route("/")
 def index():
     return render_template('index.html')
@@ -330,8 +333,10 @@ def index():
 def graphsvd():
     global args
     with psycopg2.connect(args.database_url) as conn:
-
-        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;", conn)
+        sql = sqlToday
+        if 'yesturday' in request.args:
+            sql = sqlYesturday
+        df = pd.read_sql_query(sql, conn)
         df = df.drop('inverter_output_current', 1)
         df = df.drop('inverter_charge_current', 1)
         df = df.drop('inverter_buy_current', 1)
@@ -355,7 +360,7 @@ def graphsvd():
         dayPercentComplete = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds() / 60 / 60 / 24)
         df['dayPercentComplete'] = dayPercentComplete
         df = df.drop('timestamp', 1)
-        df = df.loc[:, (df != 0).any(axis=0)]
+        
         cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
         #target == cc1_watts
         
@@ -363,8 +368,7 @@ def graphsvd():
         df["shunt_c_current"] = df["shunt_c_current"]*-1
         df["shunt_c_accumulated_kwh"] = df["shunt_c_accumulated_kwh"]*-1
         df["shunt_c_accumulated_ah"] = df["shunt_c_accumulated_ah"]*-1
-
-        target = df.iloc[:,18]
+        df = df.loc[:, (df != 0).any(axis=0)]
 
 
         #Applying it to SVD function
@@ -397,7 +401,7 @@ def graphsvd():
         images.append(figdata_png.decode('utf8'))
         plt.clf()
 
-        plt.scatter(principal_df['dayPercentComplete'],principal_df['PC2'], cmap='YlOrRd', c=cc_watts["cc_watts"], s=1)
+        plt.scatter(principal_df['dayPercentComplete'],principal_df['PC2'], cmap='YlOrRd', c=df["battery_voltage"], s=1)
         plt.xlabel('time of day')
         plt.ylabel('PC2')
 
@@ -409,7 +413,7 @@ def graphsvd():
         images.append(figdata_png.decode('utf8'))
         plt.clf()
         
-        plt.scatter(principal_df['dayPercentComplete'],principal_df['PC3'], cmap='YlOrRd', c=cc_watts["cc_watts"], s=1)
+        plt.scatter(principal_df['dayPercentComplete'],principal_df['PC3'], cmap='YlOrRd', c=df["battery_voltage"], s=1)
         plt.xlabel('time of day')
         plt.ylabel('PC3')
 
@@ -430,8 +434,10 @@ def graphsvd():
 def graphsvddata():
     global args
     with psycopg2.connect(args.database_url) as conn:
-
-        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;", conn)
+        sql = sqlToday
+        if 'yesturday' in request.args:
+            sql = sqlYesturday
+        df = pd.read_sql_query(sql, conn)
         df = df.drop('inverter_output_current', 1)
         df = df.drop('inverter_charge_current', 1)
         df = df.drop('inverter_buy_current', 1)
@@ -456,7 +462,7 @@ def graphsvddata():
         dayPercentComplete = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds() / 60 / 60 / 24 )
         df['dayPercentComplete'] = dayPercentComplete
         df = df.drop('timestamp', 1)
-        df = df.loc[:, (df != 0).any(axis=0)]
+        
         #target == cc1_watts + cc2_watts
         cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
 
@@ -464,7 +470,7 @@ def graphsvddata():
         df["shunt_c_current"] = df["shunt_c_current"]*-1
         df["shunt_c_accumulated_kwh"] = df["shunt_c_accumulated_kwh"]*-1
         df["shunt_c_accumulated_ah"] = df["shunt_c_accumulated_ah"]*-1
-        
+        df = df.loc[:, (df != 0).any(axis=0)]
 
         #Applying it to SVD function
         mat_reduced = SVD(df , 3)
@@ -482,7 +488,10 @@ def graphsvddata():
 def about():
     global args
     with psycopg2.connect(args.database_url) as conn:
-        df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;", conn)
+        sql = sqlToday
+        if 'yesturday' in request.args:
+            sql = sqlYesturday
+        df = pd.read_sql_query(sql, conn)
         df = df.drop('inverter_output_current', 1)
         df = df.drop('inverter_charge_current', 1)
         df = df.drop('inverter_buy_current', 1)
@@ -506,7 +515,6 @@ def about():
         dayPercentComplete = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds() / 60 / 60 / 24)
         #prepare the data
         df['dayPercentComplete'] = dayPercentComplete
-        df = df.loc[:, (df != 0).any(axis=0)]
         # move column to 2nd place
         col = df.pop("dayPercentComplete")
         df.insert(1, col.name, col)
