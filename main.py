@@ -311,10 +311,10 @@ def SVD(X , num_components):
 
 #https://stackoverflow.com/questions/51347398/need-to-save-pandas-correlation-highlighted-table-cmap-matplotlib-as-png-image
 def heatmap(images,df):
-    fig, ax = plt.subplots(figsize=(16, 12))
+    fig, ax = plt.subplots(figsize=(15, 15))
+    fig.set_tight_layout(True)
     sns.heatmap(df.corr(method='pearson'), annot=True, fmt='.4f', 
                 cmap=plt.get_cmap('coolwarm'), cbar=False, ax=ax)
-    ax.set_yticklabels(ax.get_yticklabels(), rotation="horizontal")
     figfile = BytesIO()
     plt.savefig(figfile, format='png')
     figfile.seek(0)  # rewind to beginning of file
@@ -359,6 +359,11 @@ def graphsvd():
         cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
         #target == cc1_watts
         
+        # current leaving looks like a loss so I will inverse it
+        df["shunt_c_current"] = df["shunt_c_current"]*-1
+        df["shunt_c_accumulated_kwh"] = df["shunt_c_accumulated_kwh"]*-1
+        df["shunt_c_accumulated_ah"] = df["shunt_c_accumulated_ah"]*-1
+
         target = df.iloc[:,18]
 
 
@@ -454,6 +459,13 @@ def graphsvddata():
         df = df.loc[:, (df != 0).any(axis=0)]
         #target == cc1_watts + cc2_watts
         cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
+
+        # current leaving looks like a loss so I will inverse it
+        df["shunt_c_current"] = df["shunt_c_current"]*-1
+        df["shunt_c_accumulated_kwh"] = df["shunt_c_accumulated_kwh"]*-1
+        df["shunt_c_accumulated_ah"] = df["shunt_c_accumulated_ah"]*-1
+        
+
         #Applying it to SVD function
         mat_reduced = SVD(df , 3)
         
