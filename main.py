@@ -20,7 +20,9 @@ from io import BytesIO
 import base64
 from datetime import datetime
 from dateutil import tz
+import seaborn as sns
 
+default_figure_size = plt.rcParams.get('figure.figsize')
 logger = logging.getLogger('mate3.mate3_pg')
 
 
@@ -307,6 +309,19 @@ def SVD(X , num_components):
 
     return X_reduced
 
+#https://stackoverflow.com/questions/51347398/need-to-save-pandas-correlation-highlighted-table-cmap-matplotlib-as-png-image
+def heatmap(images,df):
+    fig, ax = plt.subplots(figsize=(16, 12))
+    sns.heatmap(df.corr(method='pearson'), annot=True, fmt='.4f', 
+                cmap=plt.get_cmap('coolwarm'), cbar=False, ax=ax)
+    ax.set_yticklabels(ax.get_yticklabels(), rotation="horizontal")
+    figfile = BytesIO()
+    plt.savefig(figfile, format='png')
+    figfile.seek(0)  # rewind to beginning of file
+    images.append(base64.b64encode(figfile.getvalue()).decode('utf8'))
+    plt.subplots(figsize=default_figure_size)
+    plt.clf()
+
 @app.route("/")
 def index():
     return render_template('index.html')
@@ -317,13 +332,29 @@ def graphsvd():
     with psycopg2.connect(args.database_url) as conn:
 
         df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;", conn)
+        df = df.drop('inverter_output_current', 1)
+        df = df.drop('inverter_charge_current', 1)
+        df = df.drop('inverter_buy_current', 1)
+        df = df.drop('inverter_sell_current', 1)
+        df = df.drop('inverter_operating_mode', 1)
+        df = df.drop('aux_output_state', 1)
+        df = df.drop('minimum_ac_input_voltage', 1)
+        df = df.drop('maximum_ac_input_voltage', 1)
+        df = df.drop('sell_status', 1)
+        df = df.drop('output_kw', 1)
+        df = df.drop('buy_kw', 1)
+        df = df.drop('sell_kw', 1)
+        df = df.drop('charge_kw', 1)
+        df = df.drop('ac_couple_kw', 1)
+        df = df.drop('cc1_charger_state', 1)
+        df = df.drop('cc2_charger_state', 1)
         midnight=(datetime
              .now(tz.gettz('America/Tijuana'))
              .replace(hour=0, minute=0, second=0, microsecond=0)
              .astimezone(tz.tzutc()))
         dayPercentComplete = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds() / 60 / 60 / 24)
-        df = df.loc[:, list(df.columns[1:23]) + list(df.columns[25:50])]
         df['dayPercentComplete'] = dayPercentComplete
+        df = df.drop('timestamp', 1)
         df = df.loc[:, (df != 0).any(axis=0)]
         cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
         #target == cc1_watts
@@ -384,6 +415,9 @@ def graphsvd():
         figdata_png = base64.b64encode(figfile.getvalue())
         images.append(figdata_png.decode('utf8'))
         plt.clf()
+
+        heatmap(images,df)
+        
         return render_template('svd.html', images=images)
 
 
@@ -393,14 +427,30 @@ def graphsvddata():
     with psycopg2.connect(args.database_url) as conn:
 
         df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;", conn)
+        df = df.drop('inverter_output_current', 1)
+        df = df.drop('inverter_charge_current', 1)
+        df = df.drop('inverter_buy_current', 1)
+        df = df.drop('inverter_sell_current', 1)
+        df = df.drop('inverter_operating_mode', 1)
+        df = df.drop('aux_output_state', 1)
+        df = df.drop('minimum_ac_input_voltage', 1)
+        df = df.drop('maximum_ac_input_voltage', 1)
+        df = df.drop('sell_status', 1)
+        df = df.drop('output_kw', 1)
+        df = df.drop('buy_kw', 1)
+        df = df.drop('sell_kw', 1)
+        df = df.drop('charge_kw', 1)
+        df = df.drop('ac_couple_kw', 1)
+        df = df.drop('cc1_charger_state', 1)
+        df = df.drop('cc2_charger_state', 1)
         midnight=(datetime
              .now(tz.gettz('America/Tijuana'))
              .replace(hour=0, minute=0, second=0, microsecond=0)
              .astimezone(tz.tzutc()))
         hourOfDay = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight))
         dayPercentComplete = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds() / 60 / 60 / 24 )
-        df = df.loc[:, list(df.columns[1:23]) + list(df.columns[25:50])]
         df['dayPercentComplete'] = dayPercentComplete
+        df = df.drop('timestamp', 1)
         df = df.loc[:, (df != 0).any(axis=0)]
         #target == cc1_watts + cc2_watts
         cc_watts = pd.DataFrame(df['cc1_watts'] + df['cc2_watts'], columns = ['cc_watts']) 
@@ -421,13 +471,28 @@ def about():
     global args
     with psycopg2.connect(args.database_url) as conn:
         df = pd.read_sql_query("SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;", conn)
+        df = df.drop('inverter_output_current', 1)
+        df = df.drop('inverter_charge_current', 1)
+        df = df.drop('inverter_buy_current', 1)
+        df = df.drop('inverter_sell_current', 1)
+        df = df.drop('inverter_operating_mode', 1)
+        df = df.drop('aux_output_state', 1)
+        df = df.drop('minimum_ac_input_voltage', 1)
+        df = df.drop('maximum_ac_input_voltage', 1)
+        df = df.drop('sell_status', 1)
+        df = df.drop('output_kw', 1)
+        df = df.drop('buy_kw', 1)
+        df = df.drop('sell_kw', 1)
+        df = df.drop('charge_kw', 1)
+        df = df.drop('ac_couple_kw', 1)
+        df = df.drop('cc1_charger_state', 1)
+        df = df.drop('cc2_charger_state', 1)
         midnight=(datetime
              .now(tz.gettz('America/Tijuana'))
              .replace(hour=0, minute=0, second=0, microsecond=0)
              .astimezone(tz.tzutc()))
         dayPercentComplete = df.iloc[:,0].apply(lambda x: (x.to_pydatetime() - midnight).total_seconds() / 60 / 60 / 24)
         #prepare the data
-        df = df.loc[:, list(df.columns[0:23]) + list(df.columns[25:50])]
         df['dayPercentComplete'] = dayPercentComplete
         df = df.loc[:, (df != 0).any(axis=0)]
         # move column to 2nd place

@@ -5,4 +5,5 @@ psycopg2
 Flask
 pandas
 matplotlib
+seaborn
 git+https://github.com/maddadder/mate3
