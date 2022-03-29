@@ -21,6 +21,7 @@ import base64
 from datetime import datetime
 from dateutil import tz
 import seaborn as sns
+import random
 
 default_figure_size = plt.rcParams.get('figure.figsize')
 logger = logging.getLogger('mate3.mate3_pg')
@@ -280,6 +281,9 @@ def PCA(X , num_components):
     #Step-5
     eigenvector_subset = sorted_eigenvectors[:,0:num_components]
     
+     # flip the first component upside down
+    eigenvector_subset[:,0] = -1*eigenvector_subset[:,0]
+
     #Step-6
     X_reduced = np.dot(eigenvector_subset.transpose() , X_meaned.transpose() ).transpose()
     
@@ -299,10 +303,9 @@ def SVD(X , num_components):
     ind = np.argsort(S)[::-1]
     U, S, V = U[:, ind], S[ind], V[:, ind]
 
-    eigenvector_subset = V[:,0:num_components]
+    eigenvector_subset = U[:,0:num_components]
 
-    # if you multiply the first component by -1, it will closely match the PCA algorithm above
-    #https://stackoverflow.com/questions/27781872/eigenvectors-computed-with-numpys-eigh-and-svd-do-not-match
+    # flip the first component upside down
     eigenvector_subset[:,0] = -1*eigenvector_subset[:,0]
 
     X_reduced = np.dot(eigenvector_subset.transpose() , X_meaned.transpose() ).transpose()
@@ -372,7 +375,11 @@ def graphsvd():
 
 
         #Applying it to SVD function
-        mat_reduced = SVD(df , 3)
+        mat_reduced = None
+        if random.random() < .5:
+            mat_reduced = SVD(df , 3)
+        else:
+            mat_reduced = PCA(df , 3)
 
         #Creating a Pandas DataFrame of reduced Dataset
         principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2','PC3'])
