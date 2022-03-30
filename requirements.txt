@@ -6,4 +6,5 @@ Flask
 pandas
 matplotlib
 seaborn
+sklearn
 git+https://github.com/maddadder/mate3

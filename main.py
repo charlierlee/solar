@@ -22,6 +22,7 @@ from datetime import datetime
 from dateutil import tz
 import seaborn as sns
 import random
+from sklearn.decomposition import PCA
 
 default_figure_size = plt.rcParams.get('figure.figsize')
 logger = logging.getLogger('mate3.mate3_pg')
@@ -262,55 +263,6 @@ app = Flask(__name__)
 import numpy as np
 import time
 
-def PCA(X , num_components):
-     
-    #Step-1
-    X_meaned = X - np.mean(X , axis = 0)
-     
-    #Step-2
-    cov_mat = np.cov(X_meaned , rowvar = False)
-     
-    #Step-3
-    eigen_values , eigen_vectors = np.linalg.eigh(cov_mat)
-     
-    #Step-4
-    sorted_index = np.argsort(eigen_values)[::-1]
-    sorted_eigenvalue = eigen_values[sorted_index]
-    sorted_eigenvectors = eigen_vectors[:,sorted_index]
-     
-    #Step-5
-    eigenvector_subset = sorted_eigenvectors[:,0:num_components]
-    
-     # flip the first component upside down
-    eigenvector_subset[:,0] = -1*eigenvector_subset[:,0]
-
-    #Step-6
-    X_reduced = np.dot(eigenvector_subset.transpose() , X_meaned.transpose() ).transpose()
-    
-    return X_reduced
-
-def SVD(X , num_components):
-
-    #X_meaned=(X-X.mean())/X.std()
-
-    X_meaned = X - np.mean(X , axis = 0)
-
-    cov_mat = np.cov(X_meaned , rowvar = False)
-
-    U, S, Vt = np.linalg.svd(cov_mat, full_matrices=False)
-    V = Vt.T
-    # Sort the PCs by descending order of the singular values (i.e. by the proportion of total variance they explain)
-    ind = np.argsort(S)[::-1]
-    U, S, V = U[:, ind], S[ind], V[:, ind]
-
-    eigenvector_subset = U[:,0:num_components]
-
-    # flip the first component upside down
-    eigenvector_subset[:,0] = -1*eigenvector_subset[:,0]
-
-    X_reduced = np.dot(eigenvector_subset.transpose() , X_meaned.transpose() ).transpose()
-
-    return X_reduced
 
 #https://stackoverflow.com/questions/51347398/need-to-save-pandas-correlation-highlighted-table-cmap-matplotlib-as-png-image
 def heatmap(images,df):
@@ -373,32 +325,10 @@ def graphsvd():
         df["shunt_c_accumulated_ah"] = df["shunt_c_accumulated_ah"]*-1
         df = df.loc[:, (df != 0).any(axis=0)]
 
-
-        #Applying it to SVD function
-        mat_reduced = None
-        if random.random() < .5:
-            mat_reduced = SVD(df , 3)
-        else:
-            mat_reduced = PCA(df , 3)
-
-        #Creating a Pandas DataFrame of reduced Dataset
-        principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2','PC3'])
-        
-        principal_df=(principal_df-principal_df.mean())/principal_df.std()
-        
-        #Concat it with target variable to create a complete Dataset
-        principal_df = pd.concat([principal_df , df['dayPercentComplete']] , axis = 1)
-        
-
-        #colors = list()
-        #palette = {0: "red", 64: "green", 10: "blue", 26: "orange", 16: "yellow", 80: "black"}
-
-        #for c in target: 
-        #    colors.append(palette[int(c)])
         images = []
-        plt.scatter(principal_df['dayPercentComplete'],principal_df['PC1'], cmap='YlOrRd', c=cc_watts["cc_watts"], s=1)
+        plt.scatter(df['dayPercentComplete'],cc_watts['cc_watts'], cmap='YlOrRd', c=cc_watts["cc_watts"], s=1)
         plt.xlabel('time of day')
-        plt.ylabel('PC1')
+        plt.ylabel('watts')
 
         figfile = BytesIO()
         plt.savefig(figfile, format='png')
@@ -408,9 +338,21 @@ def graphsvd():
         images.append(figdata_png.decode('utf8'))
         plt.clf()
 
-        plt.scatter(principal_df['dayPercentComplete'],principal_df['PC2'], cmap='YlOrRd', c=df["battery_voltage"], s=1)
+        plt.scatter(df['dayPercentComplete'],df['shunt_c_accumulated_kwh'], cmap='YlOrRd', c=df["shunt_c_accumulated_kwh"], s=1)
         plt.xlabel('time of day')
-        plt.ylabel('PC2')
+        plt.ylabel('accumulated_kwh')
+
+        figfile = BytesIO()
+        plt.savefig(figfile, format='png')
+        figfile.seek(0)  # rewind to beginning of file
+        
+        figdata_png = base64.b64encode(figfile.getvalue())
+        images.append(figdata_png.decode('utf8'))
+        plt.clf()
+
+        plt.scatter(df['dayPercentComplete'],df['battery_voltage'], cmap='YlOrRd', c=df["battery_voltage"], s=1)
+        plt.xlabel('time of day')
+        plt.ylabel('battery_voltage')
 
         figfile = BytesIO()
         plt.savefig(figfile, format='png')
@@ -420,9 +362,9 @@ def graphsvd():
         images.append(figdata_png.decode('utf8'))
         plt.clf()
         
-        plt.scatter(principal_df['dayPercentComplete'],principal_df['PC3'], cmap='YlOrRd', c=df["battery_voltage"], s=1)
+        plt.scatter(df['dayPercentComplete'],df['shunt_c_current'], cmap='YlOrRd', c=df["shunt_c_current"], s=1)
         plt.xlabel('time of day')
-        plt.ylabel('PC3')
+        plt.ylabel('shunt_c_current')
 
         figfile = BytesIO()
         plt.savefig(figfile, format='png')
@@ -479,17 +421,19 @@ def graphsvddata():
         df["shunt_c_accumulated_ah"] = df["shunt_c_accumulated_ah"]*-1
         df = df.loc[:, (df != 0).any(axis=0)]
 
-        #Applying it to SVD function
-        mat_reduced = SVD(df , 3)
-        
-        #Creating a Pandas DataFrame of reduced Dataset
-        principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2','PC3'])
-        
-        #Concat it with cc_watts variable to create a complete Dataset
-        principal_df = pd.concat([principal_df , pd.DataFrame(cc_watts)] , axis = 1)
-        principal_df = pd.concat([principal_df , pd.DataFrame(hourOfDay)] , axis = 1)
+        df_scaled=(df-df.mean())/df.std()
+        pca = PCA()
+        X_pca = pca.fit_transform(df_scaled)
+        component_names = [f"PC{i+1}" for i in range(X_pca.shape[1])]
+        X_pca = pd.DataFrame(X_pca, columns=component_names)
 
-        return render_template('graphsvddata.html', samples=principal_df.values.tolist(), column_names=principal_df.head())
+        loadings = pd.DataFrame(
+            pca.components_.T,  # transpose the matrix of loadings
+            columns=component_names,  # so the columns are the principal components
+            #index=df.columns,  # and the rows are the original features
+        )
+        loadings.insert(0, 'columns', df.columns)
+        return render_template('graphsvddata.html', samples=loadings.values.tolist(), column_names=loadings.head())
 
 @app.route('/about')
 def about():

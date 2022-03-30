@@ -13,6 +13,9 @@ from datetime import datetime
 from dateutil import tz
 import seaborn as sns
 
+from sklearn.decomposition import PCA
+from sklearn.feature_selection import mutual_info_regression
+
 default_figure_size = plt.rcParams.get('figure.figsize')
 
 try:
@@ -28,38 +31,52 @@ args = None
 import numpy as np
 import time
 
-def PCA(X , num_components):
-     
-    #Step-1
-    X_meaned = X - np.mean(X , axis = 0)
-     
-    #Step-2
-    cov_mat = np.cov(X_meaned , rowvar = False)
-     
-    #Step-3
-    eigen_values , eigen_vectors = np.linalg.eigh(cov_mat)
-     
-    #Step-4
-    sorted_index = np.argsort(eigen_values)[::-1]
-    sorted_eigenvalue = eigen_values[sorted_index]
-    sorted_eigenvectors = eigen_vectors[:,sorted_index]
-     
-    #Step-5
-    eigenvector_subset = sorted_eigenvectors[:,0:num_components]
-    
-    #Step-6
-    X_reduced = np.dot(eigenvector_subset.transpose() , X_meaned.transpose() ).transpose()
-    
-    return X_reduced
+
+plt.style.use("seaborn-whitegrid")
+plt.rc("figure", autolayout=True)
+plt.rc(
+    "axes",
+    labelweight="bold",
+    labelsize="large",
+    titleweight="bold",
+    titlesize=14,
+    titlepad=10,
+)
+def plot_variance(pca, width=8, dpi=100):
+    # Create figure
+    fig, axs = plt.subplots(1, 2)
+    n = pca.n_components_
+    grid = np.arange(1, n + 1)
+    # Explained variance
+    evr = pca.explained_variance_ratio_
+    axs[0].bar(grid, evr)
+    axs[0].set(
+        xlabel="Component", title="% Explained Variance", ylim=(0.0, 1.0)
+    )
+    # Cumulative Variance
+    cv = np.cumsum(evr)
+    axs[1].plot(np.r_[0, grid], np.r_[0, cv], "o-")
+    axs[1].set(
+        xlabel="Component", title="% Cumulative Variance", ylim=(0.0, 1.0)
+    )
+    # Set up figure
+    fig.set(figwidth=8, dpi=100)
+    #plt.show()
+    return axs
+
+def make_mi_scores(X, y, discrete_features):
+    mi_scores = mutual_info_regression(X, y, discrete_features=discrete_features)
+    mi_scores = pd.Series(mi_scores, name="MI Scores", index=X.columns)
+    mi_scores = mi_scores.sort_values(ascending=False)
+    return mi_scores
 
 def SVD(X , num_components):
 
-    #mu=(X-X.mean())/X.std()
-    X = X.to_numpy()
-    mu = np.mean(X , axis = 0)
-    ma_X = X - mu
+    #X_meaned=(X-X.mean())/X.std()
 
-    cov_mat = np.cov(ma_X , rowvar = False)
+    X_meaned = X - np.mean(X , axis = 0)
+
+    cov_mat = np.cov(X_meaned , rowvar = False)
 
     U, S, Vt = np.linalg.svd(cov_mat, full_matrices=False)
     V = Vt.T
@@ -67,16 +84,13 @@ def SVD(X , num_components):
     ind = np.argsort(S)[::-1]
     U, S, V = U[:, ind], S[ind], V[:, ind]
 
-    eigenvector_subset = V[:,0:num_components]
+    eigenvector_subset = U[:,0:num_components]
 
-    # if you multiply the first component by -1, it will closely match the PCA algorithm above
-    #https://stackoverflow.com/questions/27781872/eigenvectors-computed-with-numpys-eigh-and-svd-do-not-match
+    # flip the first component upside down
     eigenvector_subset[:,0] = -1*eigenvector_subset[:,0]
 
-    eigenvalue_subset = U[:,0:num_components]
+    X_reduced = np.dot(eigenvector_subset.transpose() , X_meaned.transpose() ).transpose()
 
-    X_reduced = np.dot(eigenvector_subset.T , ma_X.T ).T
-    X_reduced2 = np.dot(eigenvalue_subset.T , ma_X.T ).T
     return X_reduced
 
 #https://stackoverflow.com/questions/51347398/need-to-save-pandas-correlation-highlighted-table-cmap-matplotlib-as-png-image
@@ -134,63 +148,19 @@ def graphsvd():
         df = df.loc[:, (df != 0).any(axis=0)]
 
 
-        #Applying it to SVD function
-        mat_reduced, reconstructed = SVD(df , 3)
-
-        #Creating a Pandas DataFrame of reduced Dataset
-        principal_df = pd.DataFrame(mat_reduced , columns = ['PC1','PC2','PC3'])
+        df_scaled=(df-df.mean())/df.std()
         
-        principal_df=(principal_df-principal_df.mean())/principal_df.std()
-        
-        #Concat it with target variable to create a complete Dataset
-        principal_df = pd.concat([principal_df , df['dayPercentComplete']] , axis = 1)
-        
+        pca = PCA()
+        X_pca = pca.fit_transform(df_scaled)
+        component_names = [f"PC{i+1}" for i in range(X_pca.shape[1])]
+        X_pca = pd.DataFrame(X_pca, columns=component_names)
 
-        #colors = list()
-        #palette = {0: "red", 64: "green", 10: "blue", 26: "orange", 16: "yellow", 80: "black"}
-
-        #for c in target: 
-        #    colors.append(palette[int(c)])
-        images = []
-        plt.scatter(principal_df['dayPercentComplete'],principal_df['PC1'], cmap='YlOrRd', c=cc_watts["cc_watts"], s=1)
-        plt.xlabel('time of day')
-        plt.ylabel('PC1')
-
-        figfile = BytesIO()
-        plt.savefig(figfile, format='png')
-        figfile.seek(0)  # rewind to beginning of file
-        
-        figdata_png = base64.b64encode(figfile.getvalue())
-        images.append(figdata_png.decode('utf8'))
-        plt.clf()
-
-        plt.scatter(principal_df['dayPercentComplete'],principal_df['PC2'], cmap='YlOrRd', c=df["battery_voltage"], s=1)
-        plt.xlabel('time of day')
-        plt.ylabel('PC2')
-
-        figfile = BytesIO()
-        plt.savefig(figfile, format='png')
-        figfile.seek(0)  # rewind to beginning of file
-        
-        figdata_png = base64.b64encode(figfile.getvalue())
-        images.append(figdata_png.decode('utf8'))
-        plt.clf()
-        
-        plt.scatter(principal_df['dayPercentComplete'],principal_df['PC3'], cmap='YlOrRd', c=df["battery_voltage"], s=1)
-        plt.xlabel('time of day')
-        plt.ylabel('PC3')
-
-        figfile = BytesIO()
-        plt.savefig(figfile, format='png')
-        figfile.seek(0)  # rewind to beginning of file
-        
-        figdata_png = base64.b64encode(figfile.getvalue())
-        images.append(figdata_png.decode('utf8'))
-        plt.clf()
-
-        heatmap(images,df)
-        
-
+        print(X_pca.head())
+        plot_variance(pca)
+        mi_scores = make_mi_scores(X_pca, cc_watts, discrete_features=False)
+        print(mi_scores)
+        idx = X_pca["PC3"].sort_values(ascending=False).index
+        print(df.loc[idx])
 
 def graphsvddata():
     global args
