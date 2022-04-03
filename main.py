@@ -323,7 +323,6 @@ def graphsvd():
         df["shunt_c_current"] = df["shunt_c_current"]*-1
         df["shunt_c_accumulated_kwh"] = df["shunt_c_accumulated_kwh"]*-1
         df["shunt_c_accumulated_ah"] = df["shunt_c_accumulated_ah"]*-1
-        df = df.loc[:, (df != 0).any(axis=0)]
 
         images = []
         plt.scatter(df['dayPercentComplete'],cc_watts['cc_watts'], cmap='YlOrRd', c=cc_watts["cc_watts"], s=1)
@@ -373,7 +372,8 @@ def graphsvd():
         figdata_png = base64.b64encode(figfile.getvalue())
         images.append(figdata_png.decode('utf8'))
         plt.clf()
-
+        
+        df = df.loc[:, (df != 0).any(axis=0)]
         heatmap(images,df)
         
         return render_template('svd.html', images=images)

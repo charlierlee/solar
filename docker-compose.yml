@@ -2,7 +2,7 @@ version: '2'
 
 services:
     solar:
-        image: 192.168.1.151:32000/solar:1.0.265
+        image: 192.168.1.151:32000/solar:1.0.267
         build:
             context: .
             dockerfile: ./Dockerfile

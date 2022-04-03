@@ -17,7 +17,7 @@
     # rename Dockerfile.example to Dockerfile
     # build the image with the secret
     docker-compose build
-    docker push 192.168.1.151:32000/solar:1.0.265
+    docker push 192.168.1.151:32000/solar:1.0.267
     microk8s helm3 install solar ./solar
     OR 
     helm upgrade solar ./solar
