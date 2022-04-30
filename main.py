@@ -277,8 +277,8 @@ def heatmap(images,df):
     plt.subplots(figsize=default_figure_size)
     plt.clf()
 
-sqlToday = "SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;"
-sqlYesturday = "SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', (now() - interval '24h') AT TIME ZONE 'PST') AT TIME ZONE 'PST' AND timestamp <= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc;"
+sqlToday = "SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc "
+sqlYesturday = "SELECT * FROM device_data_logs1 where timestamp >= date_trunc('day', (now() - interval '24h') AT TIME ZONE 'PST') AT TIME ZONE 'PST' AND timestamp <= date_trunc('day', now() AT TIME ZONE 'PST') AT TIME ZONE 'PST' order by timestamp desc "
         
 @app.route("/")
 def index():
@@ -439,9 +439,9 @@ def graphsvddata():
 def about():
     global args
     with psycopg2.connect(args.database_url) as conn:
-        sql = sqlToday
+        sql = sqlToday + " LIMIT 25"
         if 'yesturday' in request.args:
-            sql = sqlYesturday
+            sql = sqlYesturday+ " LIMIT 25"
         df = pd.read_sql_query(sql, conn)
         df = df.drop('inverter_output_current', 1)
         df = df.drop('inverter_charge_current', 1)

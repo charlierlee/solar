@@ -15,6 +15,7 @@ spec:
     foo_user: []  # role for application foo
   databases:
     foo: zalando  # dbname: owner
+    movies: zalando
   preparedDatabases:
     bar: {}
   postgresql:
