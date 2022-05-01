@@ -6,7 +6,7 @@ metadata:
 spec:
   teamId: "acid"
   volume:
-    size: 1Gi
+    size: 5Gi
   numberOfInstances: 3
   users:
     zalando:  # database owner
