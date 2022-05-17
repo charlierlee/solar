@@ -443,6 +443,8 @@ def about():
         if 'yesturday' in request.args:
             sql = sqlYesturday+ " LIMIT 25"
         df = pd.read_sql_query(sql, conn)
+        if df.empty:
+            raise ValueError('There are no results when there should be')
         df = df.drop('inverter_output_current', 1)
         df = df.drop('inverter_charge_current', 1)
         df = df.drop('inverter_buy_current', 1)
