@@ -437,7 +437,9 @@ def graphsvddata():
 
 @app.route('/about')
 def about():
-    global args
+    global args, t1
+    if t1.is_alive() != True:
+        raise Exception("background thread is dead")
     with psycopg2.connect(args.database_url) as conn:
         sql = sqlToday + " LIMIT 25"
         if 'yesturday' in request.args:
@@ -478,5 +480,6 @@ def about():
         return render_template('about.html', samples=df.values.tolist(), column_names=df.head())
 
 if __name__ == '__main__':
-    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8511, debug=True, use_reloader=False)).start()
+    t1 = threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8511, debug=True, use_reloader=False))
+    t1.start()
     main()
