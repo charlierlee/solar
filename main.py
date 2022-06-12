@@ -42,7 +42,7 @@ except ImportError:
 host = '192.168.0.123'
 port = 502
 args = None
-
+latest_row = None
 class Table(NamedTuple):
     name: str
     definitions: List["Definition"]
@@ -437,7 +437,7 @@ def graphsvddata():
 
 @app.route('/about')
 def about():
-    global args, t1
+    global args, t1, latest_row
     if t1.is_alive() != True:
         raise Exception("background thread is dead")
     with psycopg2.connect(args.database_url) as conn:
@@ -475,7 +475,11 @@ def about():
         df.insert(1, col.name, col)
 
         df = df.loc[:, (df != 0).any(axis=0)]
-
+        
+        if df['timestamp'].values[0] == latest_row:
+            raise Exception("background thread is dead")
+        else:
+            latest_row = df['timestamp'].values[0]
         #conn.close()
         return render_template('about.html', samples=df.values.tolist(), column_names=df.head())
 
